@@ -3,10 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 
 [RequireComponent(typeof(LineRenderer))]
-public class Laser : MonoBehaviour
+public class Laser : MonoBehaviour, IWeapon
 {
     public bool CanFire;
     public float MaxDistance = 100f;
+    public float damageAmount = 5f;
 
     private Coroutine _coroutineFiring;
     private WaitForSeconds _waitForFiring;
@@ -14,28 +15,32 @@ public class Laser : MonoBehaviour
 
     [Header("Links")]
     [SerializeField] private LineRenderer _lineRenderer;
-   
-    private void Start()
+    private ShipWeapons _ShipWeapons;
+
+    public List<IDamageable> TargetsHit = new List<IDamageable>();
+
+    private void Awake()
     {
+        if (_ShipWeapons == null)
+        {
+            _ShipWeapons = GetComponentInParent<ShipWeapons>();
+        }
         if (_lineRenderer == null)
         {
             _lineRenderer = GetComponent<LineRenderer>();
-
-            _waitForFiring = new WaitForSeconds(_waitTimeFiring);
-
-            _lineRenderer.enabled = false;
-            CanFire = true;
         }
     }
 
-    private void Update()
+    private void Start()
     {
-        if (Input.GetMouseButtonDown(0))
-        {
-            Vector3 targetPosition = FireWeapon(transform.position + transform.forward * MaxDistance);
-            VizualizeFiringWeapon(targetPosition);
-        }
+
+        _waitForFiring = new WaitForSeconds(_waitTimeFiring);
+
+        _lineRenderer.enabled = false;
+        CanFire = true;
+
     }
+
 
     public Vector3 FireWeapon(Vector3 targetPosition)
     {
@@ -47,16 +52,30 @@ public class Laser : MonoBehaviour
             if (targetHit != null)
             {
                 Debug.Log($"targetHit: {targetHit.name}");
-                //Destroy(targetHit.gameObject);
+                var damageableHit = targetHit.GetComponent<IDamageable>();
+                if (damageableHit != null)
+                {
+                    TargetsHit.Add(damageableHit);
+                    Damage(damageAmount, targetHit.position, _ShipWeapons._SpaceShip.ShipAgent);
+                }
+                VizualizeFiring(targetHit.position);
                 return targetHit.position;
             }
-
         }
-
+        VizualizeFiring(transform.position + direction.normalized * MaxDistance);
         return targetPosition;
     }
 
-    public void VizualizeFiringWeapon(Vector3 targetPosition)
+    public void Damage(float damageAmount, Vector3 targetHitPosition, GameAgent sender)
+    {
+        foreach (var targetHit in TargetsHit)
+        {
+            targetHit.ReceiveDamage(damageAmount, targetHitPosition, sender);
+        }
+        TargetsHit.Clear();
+    }
+
+    public void VizualizeFiring(Vector3 targetPosition)
     {
         if (CanFire)
         {

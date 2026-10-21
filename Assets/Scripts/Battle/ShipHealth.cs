@@ -1,16 +1,30 @@
 using UnityEngine;
 
-public class ShipHealth : MonoBehaviour
+public class ShipHealth : MonoBehaviour, IDamageable 
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    [SerializeField] private float _health;
+
+    public float Health => _health;
+
     void Start()
     {
         
     }
 
-    // Update is called once per frame
-    void Update()
+    public void ReceiveDamage(float damageAmount, Vector3 hitPosition, GameAgent sender)
     {
-        
+        _health -= damageAmount;
+        if (_health <= 0) 
+        {
+            Debug.Log($"Attacker: {sender.gameObject.name}");
+            Debug.Log($"Attacker faction: {sender.ShipFaction}");
+            Destroy(gameObject);
+        }
     }
+
+    public void ReceiveHeal(float healAmount, Vector3 hitPosition, GameAgent sender)
+    {
+        throw new System.NotImplementedException();
+    }
+
 }
